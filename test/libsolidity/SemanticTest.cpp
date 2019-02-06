@@ -41,17 +41,20 @@ namespace
 	using FunctionCallTest = dev::solidity::test::SemanticTest::FunctionCallTest;
 	using FunctionCall = dev::solidity::test::FunctionCall;
 
-	string formatBytes(bytes const& _bytes, ParamList const& _params, bool const _formatInvalid = false)
+	string formatBytes(bytes const& _bytes, ParamList const& _params)
 	{
 		stringstream resultStream;
 		if (_bytes.empty())
-			resultStream.str();
+			return resultStream.str();
 		auto it = _bytes.begin();
 		for (auto const& param: _params)
 		{
-			bytes byteRange{it, it + param.abiType.size};
-			// FIXME Check range
-			// TODO Check range
+			long offset = static_cast<long>(param.abiType.size);
+			auto offsetIter = it + offset;
+			if (offsetIter > _bytes.end())
+				BOOST_THROW_EXCEPTION(runtime_error("Invalid byte range defined."));
+
+			bytes byteRange{it, offsetIter};
 			switch (param.abiType.type)
 			{
 			case ABIType::SignedDec:
@@ -74,16 +77,14 @@ namespace
 				// If expectations are empty, the encoding type is invalid.
 				// In order to still print the actual result even if
 				// empty expectations were detected, it must be forced.
-				if (_formatInvalid)
-					resultStream << fromBigEndian<u256>(byteRange);
+				resultStream << fromBigEndian<u256>(byteRange);
 				break;
 			case ABIType::None:
 				// If expectations are empty, the encoding type is NONE.
-				if (_formatInvalid)
-					resultStream << fromBigEndian<u256>(byteRange);
+				resultStream << fromBigEndian<u256>(byteRange);
 				break;
 			}
-			it += param.abiType.size;
+			it += offset;
 			if (it != _bytes.end() && !(param.abiType.type == ABIType::None))
 				resultStream << ", ";
 		}
@@ -94,31 +95,43 @@ namespace
 		FunctionCallTest const& _test,
 		string const& _linePrefix = "",
 		bool const _renderResult = false,
-		bool const _higlight = false
+		bool const _highlight = false
 	)
 	{
+		using namespace soltest;
+		using Token = soltest::Token;
+
 		stringstream _stream;
 		FunctionCall call = _test.call;
-		bool hightlight = !_test.matchesExpectation() && _higlight;
+		bool highlight = !_test.matchesExpectation() && _highlight;
 
 		auto formatOutput = [&](bool const _singleLine)
 		{
-			_stream << _linePrefix << "// " << call.signature;
+			string ws = " ";
+			string arrow = formatToken(Token::Arrow);
+			string colon = formatToken(Token::Colon);
+			string comma = formatToken(Token::Comma);
+			string ether = formatToken(Token::Ether);
+			string newline = formatToken(Token::Newline);
+
+			_stream << _linePrefix << newline << ws << call.signature;
 			if (call.value > u256(0))
-				_stream << TestFileParser::formatToken(SoltToken::Comma)
-						<< call.value << " "
-						<< TestFileParser::formatToken(SoltToken::Ether);
+				_stream << comma << call.value << ws << ether;
 			if (!call.arguments.rawBytes().empty())
-				_stream << ": "
-						<< formatBytes(call.arguments.rawBytes(), call.arguments.parameters);
+			{
+				string output = formatBytes(call.arguments.rawBytes(), call.arguments.parameters);
+				_stream << colon << ws << output;
+			}
 			if (!_singleLine)
-				_stream << endl << _linePrefix << "// ";
+				_stream << endl << _linePrefix << newline << ws;
 			if (_singleLine)
-				_stream << " ";
-			_stream << "-> ";
+				_stream << ws;
+			_stream << arrow;
+			if (_singleLine)
+				_stream << ws;
 			if (!_singleLine)
-				_stream << endl << _linePrefix << "// ";
-			if (hightlight)
+				_stream << endl << _linePrefix << newline << ws;
+			if (highlight)
 				_stream << formatting::RED_BACKGROUND;
 			bytes output;
 			if (_renderResult)
@@ -127,7 +140,7 @@ namespace
 				output = _test.rawBytes;
 			if (!output.empty())
 				_stream << formatBytes(output, call.expectations.result);
-			if (hightlight)
+			if (highlight)
 				_stream << formatting::RESET;
 		};
 
@@ -202,10 +215,10 @@ void SemanticTest::printSource(ostream& _stream, string const& _linePrefix, bool
 		_stream << _linePrefix << line << endl;
 }
 
-void SemanticTest::printUpdatedExpectations(ostream& _stream, string const& _linePrefix) const
+void SemanticTest::printUpdatedExpectations(ostream& _stream, string const&) const
 {
 	for (auto const& test: m_tests)
-		_stream << formatFunctionCallTest(test, _linePrefix, false, false);
+		_stream << formatFunctionCallTest(test, "", false, false);
 }
 
 void SemanticTest::parseExpectations(istream& _stream)
