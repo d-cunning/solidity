@@ -37,22 +37,22 @@ using namespace boost::unit_test;
 
 namespace
 {
-	using ParamList = dev::solidity::test::ParameterList;
-	using FunctionCallTest = dev::solidity::test::SemanticTest::FunctionCallTest;
+	using FunctionCallTest = SemanticTest::FunctionCallTest;
 	using FunctionCall = dev::solidity::test::FunctionCall;
+	using ParamList = dev::solidity::test::ParameterList;
+
 
 	string formatBytes(bytes const& _bytes, ParamList const& _params)
 	{
 		stringstream resultStream;
 		if (_bytes.empty())
-			return resultStream.str();
+			return {};
 		auto it = _bytes.begin();
 		for (auto const& param: _params)
 		{
 			long offset = static_cast<long>(param.abiType.size);
 			auto offsetIter = it + offset;
-			if (offsetIter > _bytes.end())
-				BOOST_THROW_EXCEPTION(runtime_error("Invalid byte range defined."));
+			soltestAssert(offsetIter <= _bytes.end(), "Byte range can not be extented past the end of given bytes.");
 
 			bytes byteRange{it, offsetIter};
 			switch (param.abiType.type)
@@ -88,6 +88,7 @@ namespace
 			if (it != _bytes.end() && !(param.abiType.type == ABIType::None))
 				resultStream << ", ";
 		}
+		soltestAssert(it == _bytes.end(), "Given bytes must be formatted entirely.");
 		return resultStream.str();
 	}
 
@@ -129,19 +130,12 @@ namespace
 			_stream << arrow;
 			if (_singleLine)
 				_stream << ws;
-			if (!_singleLine)
-				_stream << endl << _linePrefix << newline << ws;
-			if (highlight)
-				_stream << formatting::RED_BACKGROUND;
-			bytes output;
-			if (_renderResult)
-				output = call.expectations.rawBytes();
 			else
-				output = _test.rawBytes;
-			if (!output.empty())
-				_stream << formatBytes(output, call.expectations.result);
-			if (highlight)
-				_stream << formatting::RESET;
+				_stream << endl << _linePrefix << newline << ws;
+
+			bytes output = _renderResult ? call.expectations.rawBytes() : _test.rawBytes;
+			FormattedScope(_stream, highlight, {formatting::RED_BACKGROUND}) <<
+				formatBytes(output, call.expectations.result);
 		};
 
 		if (call.displayMode == FunctionCall::DisplayMode::SingleLine)
@@ -158,8 +152,7 @@ SemanticTest::SemanticTest(string const& _filename, string const& _ipcPath):
 	SolidityExecutionFramework(_ipcPath)
 {
 	ifstream file(_filename);
-	if (!file)
-		BOOST_THROW_EXCEPTION(runtime_error("Cannot open test contract: \"" + _filename + "\"."));
+	soltestAssert(file, "Cannot open test contract: \"" + _filename + "\".");
 	file.exceptions(ios::badbit);
 
 	m_source = parseSource(file);
@@ -168,8 +161,7 @@ SemanticTest::SemanticTest(string const& _filename, string const& _ipcPath):
 
 bool SemanticTest::run(ostream& _stream, string const& _linePrefix, bool const _formatted)
 {
-	if (!deploy("", 0, bytes()))
-		BOOST_THROW_EXCEPTION(runtime_error("Failed to deploy contract."));
+	soltestAssert(deploy("", 0, bytes()), "Failed to deploy contract.");
 
 	bool success = true;
 	for (auto& test: m_tests)
