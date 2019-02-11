@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
 	bool formatted = true;
 	po::options_description options(
 		R"(isoltest, tool for interactively managing test contracts.
-Usage: isoltest [Options] --testpath path --ipcpath ipcpath
+Usage: isoltest [Options] --ipcpath ipcpath
 Interactively validates test contracts.
 
 Allowed options)",

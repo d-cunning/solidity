@@ -28,12 +28,12 @@
 using namespace dev;
 using namespace solidity;
 using namespace dev::solidity::test;
-using namespace dev::solidity::test::formatting;
+using namespace dev::formatting;
 using namespace std;
-namespace fs = boost::filesystem;
 using namespace boost;
 using namespace boost::algorithm;
 using namespace boost::unit_test;
+namespace fs = boost::filesystem;
 
 namespace
 {
@@ -134,7 +134,7 @@ namespace
 				_stream << endl << _linePrefix << newline << ws;
 
 			bytes output = _renderResult ? call.expectations.rawBytes() : _test.rawBytes;
-			FormattedScope(_stream, highlight, {formatting::RED_BACKGROUND}) <<
+			AnsiColorized(_stream, highlight, {RED_BACKGROUND}) <<
 				formatBytes(output, call.expectations.result);
 		};
 
@@ -184,15 +184,15 @@ bool SemanticTest::run(ostream& _stream, string const& _linePrefix, bool const _
 
 	if (!success)
 	{
-		FormattedScope(_stream, _formatted, {BOLD, CYAN}) << _linePrefix << "Expected result:" << endl;
+		AnsiColorized(_stream, _formatted, {BOLD, CYAN}) << _linePrefix << "Expected result:" << endl;
 		for (auto const& test: m_tests)
 			_stream << formatFunctionCallTest(test, _linePrefix, false, true);
 
-		FormattedScope(_stream, _formatted, {BOLD, CYAN}) << _linePrefix << "Obtained result:" << endl;
+		AnsiColorized(_stream, _formatted, {BOLD, CYAN}) << _linePrefix << "Obtained result:" << endl;
 		for (auto const& test: m_tests)
 			_stream << formatFunctionCallTest(test, _linePrefix, true, true);
 
-		FormattedScope(_stream, _formatted, {BOLD, RED}) << _linePrefix
+		AnsiColorized(_stream, _formatted, {BOLD, RED}) << _linePrefix
 			<< "Attention: Updates on the test will apply the detected format displayed." << endl;
 		return false;
 	}
