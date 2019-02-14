@@ -114,7 +114,7 @@ struct ABIType
  */
 struct FormatInfo
 {
-	bool newline;
+	bool newline = false;
 };
 
 /**

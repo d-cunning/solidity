@@ -86,14 +86,16 @@ namespace
 		return resultStream.str();
 	}
 
-	string formatRawArguments(ParamList const& _params)
+	string formatRawArguments(ParamList const& _params, string const& _linePrefix = "")
 	{
 		stringstream resultStream;
 		for (auto const& param: _params)
 		{
-			resultStream << param.rawString;
+			if (param.format.newline)
+				resultStream << endl << _linePrefix << "//";
+			resultStream << " " << param.rawString;
 			if (&param != &_params.back())
-				resultStream << ", ";
+				resultStream << ",";
 		}
 		return resultStream.str();
 	}
@@ -118,30 +120,57 @@ namespace
 			string arrow = formatToken(Token::Arrow);
 			string colon = formatToken(Token::Colon);
 			string comma = formatToken(Token::Comma);
+			string comment = formatToken(Token::Comment);
 			string ether = formatToken(Token::Ether);
 			string newline = formatToken(Token::Newline);
 
-			_stream << _linePrefix << newline << ws << call.signature;
-			if (call.value > u256(0))
-				_stream << comma << ws << call.value << ws << ether;
-			if (!call.arguments.rawBytes().empty())
+			if (_singleLine)
 			{
-				string output = formatRawArguments(call.arguments.parameters);
-				_stream << colon << ws << output;
-			}
-			if (!_singleLine)
-				_stream << endl << _linePrefix << newline << ws;
-			if (_singleLine)
-				_stream << ws;
-			_stream << arrow;
-			if (_singleLine)
-				_stream << ws;
-			else
-				_stream << endl << _linePrefix << newline << ws;
+				_stream << _linePrefix << newline << ws << call.signature;
+				if (call.value > u256(0))
+					_stream << comma << ws << call.value << ws << ether;
+				if (!call.arguments.rawBytes().empty())
+				{
+					string output = formatRawArguments(call.arguments.parameters, _linePrefix);
+					_stream << colon << output;
+				}
+				if (!call.arguments.comment.empty())
+				{
+					_stream << _linePrefix << newline << ws;
+					_stream << comment << call.arguments.comment << comment;
+				}
+				_stream << ws << arrow << ws;
 
-			bytes output = _renderResult ? call.expectations.rawBytes() : _test.rawBytes;
-			AnsiColorized(_stream, highlight, {RED_BACKGROUND}) <<
-				formatBytes(output, call.expectations.result);
+				bytes output = _renderResult ? _test.rawBytes : call.expectations.rawBytes();
+				string result = (_renderResult && _test.rawBytes.empty() && _test.failure) ?
+							"FAILURE" :
+							formatBytes(output, call.expectations.result);
+				AnsiColorized(_stream, highlight, {RED_BACKGROUND}) << result;
+			}
+			else
+			{
+				_stream << _linePrefix << newline << ws << call.signature;
+				if (call.value > u256(0))
+					_stream << comma << ws << call.value << ws << ether;
+				if (!call.arguments.rawBytes().empty())
+				{
+					string output = formatRawArguments(call.arguments.parameters, _linePrefix);
+					_stream << colon << output;
+				}
+				_stream << endl << _linePrefix << newline << ws;
+				if (!call.arguments.comment.empty())
+				{
+					 _stream << comment << call.arguments.comment << comment;
+					 _stream << endl << _linePrefix << newline << ws;
+				}
+				_stream << arrow << ws;
+
+				bytes output = _renderResult ? _test.rawBytes : call.expectations.rawBytes();
+				string result = (_renderResult && _test.rawBytes.empty() && _test.failure) ?
+							"FAILURE" :
+							formatBytes(output, call.expectations.result);
+				AnsiColorized(_stream, highlight, {RED_BACKGROUND}) << result;
+			}
 		};
 
 		if (call.displayMode == FunctionCall::DisplayMode::SingleLine)
@@ -216,7 +245,7 @@ void SemanticTest::printSource(ostream& _stream, string const& _linePrefix, bool
 void SemanticTest::printUpdatedExpectations(ostream& _stream, string const&) const
 {
 	for (auto const& test: m_tests)
-		_stream << formatFunctionCallTest(test, "", false, false);
+		_stream << formatFunctionCallTest(test, "", true, false);
 }
 
 void SemanticTest::parseExpectations(istream& _stream)

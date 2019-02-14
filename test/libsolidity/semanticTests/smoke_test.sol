@@ -11,7 +11,7 @@ contract C {
 }
 // ----
 // f() -> 1
-// g(uint256,uint256): 1, -2 -> -1
+// g(uint256,uint256): 1, -2 -> 3
 // h(), 1 ether -> 1
 // j() -> FAILURE
-
+// j() -> FAILURE
