@@ -52,7 +52,7 @@ namespace
 		{
 			long offset = static_cast<long>(param.abiType.size);
 			auto offsetIter = it + offset;
-			soltestAssert(offsetIter <= _bytes.end(), "Byte range can not be extented past the end of given bytes.");
+			soltestAssert(offsetIter <= _bytes.end(), "Byte range can not be extended past the end of given bytes.");
 
 			bytes byteRange{it, offsetIter};
 			switch (param.abiType.type)
@@ -74,14 +74,8 @@ namespace
 					resultStream << fromBigEndian<u256>(byteRange);
 				break;
 			case ABIType::Failure:
-				// If expectations are empty, the encoding type is invalid.
-				// In order to still print the actual result even if
-				// empty expectations were detected, it must be forced.
-				resultStream << fromBigEndian<u256>(byteRange);
 				break;
 			case ABIType::None:
-				// If expectations are empty, the encoding type is NONE.
-				resultStream << fromBigEndian<u256>(byteRange);
 				break;
 			}
 			it += offset;
@@ -89,6 +83,18 @@ namespace
 				resultStream << ", ";
 		}
 		soltestAssert(it == _bytes.end(), "Given bytes must be formatted entirely.");
+		return resultStream.str();
+	}
+
+	string formatRawArguments(ParamList const& _params)
+	{
+		stringstream resultStream;
+		for (auto const& param: _params)
+		{
+			resultStream << param.rawString;
+			if (&param != &_params.back())
+				resultStream << ", ";
+		}
 		return resultStream.str();
 	}
 
@@ -117,10 +123,10 @@ namespace
 
 			_stream << _linePrefix << newline << ws << call.signature;
 			if (call.value > u256(0))
-				_stream << comma << call.value << ws << ether;
+				_stream << comma << ws << call.value << ws << ether;
 			if (!call.arguments.rawBytes().empty())
 			{
-				string output = formatBytes(call.arguments.rawBytes(), call.arguments.parameters);
+				string output = formatRawArguments(call.arguments.parameters);
 				_stream << colon << ws << output;
 			}
 			if (!_singleLine)
@@ -186,11 +192,11 @@ bool SemanticTest::run(ostream& _stream, string const& _linePrefix, bool const _
 	{
 		AnsiColorized(_stream, _formatted, {BOLD, CYAN}) << _linePrefix << "Expected result:" << endl;
 		for (auto const& test: m_tests)
-			_stream << formatFunctionCallTest(test, _linePrefix, false, true);
+			_stream << formatFunctionCallTest(test, _linePrefix, false, true & _formatted);
 
 		AnsiColorized(_stream, _formatted, {BOLD, CYAN}) << _linePrefix << "Obtained result:" << endl;
 		for (auto const& test: m_tests)
-			_stream << formatFunctionCallTest(test, _linePrefix, true, true);
+			_stream << formatFunctionCallTest(test, _linePrefix, true, true & _formatted);
 
 		AnsiColorized(_stream, _formatted, {BOLD, RED}) << _linePrefix
 			<< "Attention: Updates on the test will apply the detected format displayed." << endl;
