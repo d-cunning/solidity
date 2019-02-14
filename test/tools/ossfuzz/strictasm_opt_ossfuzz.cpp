@@ -83,16 +83,23 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* _data, size_t _size)
 
 	string input(reinterpret_cast<char const*>(_data), _size);
 
-	AssemblyStack stack(solidity::EVMVersion::constantinople(), AssemblyStack::Language::StrictAssembly);
+	AssemblyStack stack(solidity::EVMVersion::constantinople(), AssemblyStack::Language::Yul);
 	if (stack.parseAndAnalyze("source", input))
 		yulAssert(stack.errors().empty(), "Parsed successfully but had errors.");
 	else
 		printErrors(stack.errors());
 
-	if (!stack.parserResult()->code || !stack.parserResult()->analysisInfo)
+	try
+	{
+		if (!stack.parserResult()->code || !stack.parserResult()->analysisInfo)
+			return 0;
+	}
+	catch (InternalCompilerError const&)
+	{
 		return 0;
+	}
 
-	ostream os1, os2;
+	ostringstream os1, os2;
 	interpret(os1, stack.parserResult()->code);
 	stack.optimize();
 	interpret(os2, stack.parserResult()->code);
