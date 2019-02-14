@@ -43,7 +43,7 @@ addresses match what you expect.
         function transferFrom(address from, address to, uint amount) public returns (bool success) {
             require(allowed[from][msg.sender] >= amount);
             allowed[from][msg.sender] -= amount;
-            balances.send(from, to, amount);
+            balances.move(from, to, amount);
             emit Transfer(from, to, amount);
             return true;
         }
