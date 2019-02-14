@@ -124,19 +124,19 @@ TestTool::Result TestTool::process()
 	catch(boost::exception const& _e)
 	{
 		AnsiColorized(cout, m_formatted, {BOLD, RED}) <<
-			"Exception during syntax test: " << boost::diagnostic_information(_e) << endl;
+			"Exception during test: " << boost::diagnostic_information(_e) << endl;
 		return Result::Exception;
 	}
 	catch (std::exception const& _e)
 	{
 		AnsiColorized(cout, m_formatted, {BOLD, RED}) <<
-			"Exception during syntax test: " << _e.what() << endl;
+			"Exception during test: " << _e.what() << endl;
 		return Result::Exception;
 	}
 	catch (...)
 	{
 		AnsiColorized(cout, m_formatted, {BOLD, RED}) <<
-			"Unknown exception during syntax test." << endl;
+			"Unknown exception during test." << endl;
 		return Result::Exception;
 	}
 
