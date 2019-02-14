@@ -5,7 +5,7 @@ Modular Contracts
 *****************
 
 A modular approach to building your contracts helps you prevent overflow risks
-and unexpected tokens. In the example below, the contract uses the ``send`` method
+and unexpected tokens. In the example below, the contract uses the ``move`` method
 of the ``Balances`` :ref:`library <libraries>` to check that balances sent between
 addresses match what you expect.
 
